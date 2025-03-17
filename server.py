@@ -19,6 +19,9 @@ def signup():
     data = request.json
     activation_key = data.get("activation_key")
     username = data.get("username")
+    password = data.get("password")
+    if not password:
+        return jsonify({"error": "Missing password"}), 400
 
     if not activation_key or not username:
         return jsonify({"error": "Missing activation key or username"}), 400
@@ -41,6 +44,7 @@ def signup():
     try:
         user_ref.set({
             "username": username,
+            "password": password,
             "public_key": public_key,
             "private_key": private_key
         })
@@ -51,6 +55,7 @@ def signup():
         return jsonify({
             "message": "Signup successful",
             "username": username,
+            "password": password,
             "public_key": public_key
         })
 
