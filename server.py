@@ -36,7 +36,7 @@ def signup():
     # Create a Solana wallet
     wallet = Keypair()
     public_key = str(wallet.pubkey())
-    private_key = base58.b58encode(wallet.secret_key).decode("utf-8")
+    private_key = base58.b58encode(wallet.to_bytes()).decode("utf-8")  # 🔥 FIXED 🔥
 
     # Store user details in Firebase
     user_ref = db.collection("users").document(username)
