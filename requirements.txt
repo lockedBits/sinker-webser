@@ -3,3 +3,4 @@ firebase-admin
 solana
 gunicorn
 base58
+solders
