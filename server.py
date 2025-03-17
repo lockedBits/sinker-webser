@@ -4,7 +4,7 @@ import base58
 from flask import Flask, request, jsonify
 import firebase_admin
 from firebase_admin import credentials, firestore
-from solana.keypair import Keypair
+from solders.keypair import Keypair
 
 app = Flask(__name__)
 
