@@ -30,9 +30,6 @@ def signup():
     if not key_doc.exists:
         return jsonify({"error": "Invalid activation key"}), 400
 
-    # Remove activation key from database
-    key_ref.delete()
-
     # Create a Solana wallet
     wallet = Keypair()
     public_key = str(wallet.pubkey())
@@ -40,16 +37,25 @@ def signup():
 
     # Store user details in Firebase
     user_ref = db.collection("users").document(username)
-    user_ref.set({
-        "username": username,
-        "public_key": public_key,
-        "private_key": private_key
-    })
+    
+    try:
+        user_ref.set({
+            "username": username,
+            "public_key": public_key,
+            "private_key": private_key
+        })
+        
+        # 🔥 Delete activation key only after user is created successfully
+        key_ref.delete()
 
-    return jsonify({
-        "message": "Signup successful",
-        "public_key": public_key
-    })
+        return jsonify({
+            "message": "Signup successful",
+            "username": username,
+            "public_key": public_key
+        })
+
+    except Exception as e:
+        return jsonify({"error": "Failed to create user", "details": str(e)}), 500
 
 if __name__ == "__main__":
     app.run(debug=True)
