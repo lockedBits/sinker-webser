@@ -1,5 +1,5 @@
-Flask==3.0.2
-firebase-admin==6.4.0
-solders==0.17.1
-python-dotenv==1.0.1
-bcrypt==4.1.2
+Flask
+firebase-admin
+solders
+python-dotenv
+bcrypt
