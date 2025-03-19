@@ -2,25 +2,30 @@ from flask import Flask
 from firebase_admin import credentials, firestore, initialize_app
 import json, os
 
+# ✅ Import blueprint
 from app.routes.auth import auth_bp
 
-app = Flask(__name__)
+# ✅ Avoid naming conflict: give a new name to Flask app instance
+flask_app = Flask(__name__)
 
-# Firebase setup
+# ✅ Setup Firebase
 firebase_config = json.loads(os.getenv("FIREBASE_CREDENTIALS"))
 cred = credentials.Certificate(firebase_config)
 initialize_app(cred)
-db = firestore.client()
+firestore_db = firestore.client()
 
-import app
-app.db = db
+# ✅ Assign Firestore DB globally via app package
+import app  # this is the `app/` folder
+app.db = firestore_db
 
-# Register Routes
-app.register_blueprint(auth_bp, url_prefix="/api/auth")
+# ✅ Register blueprint properly
+flask_app.register_blueprint(auth_bp, url_prefix="/api/auth")
 
-@app.route("/")
+# ✅ Sample route
+@flask_app.route("/")
 def index():
-    return {"status": "success", "message": "Server running"}
+    return {"status": "success", "message": "Server is running!"}
 
+# ✅ Run Flask app
 if __name__ == "__main__":
-    app.run(debug=True)
+    flask_app.run(debug=True)
