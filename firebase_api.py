@@ -1,5 +1,6 @@
 import firebase_admin
 from firebase_admin import credentials, firestore
+import json
 
 firebase_config = json.loads(os.getenv("FIREBASE_CREDENTIALS"))
 cred = credentials.Certificate(firebase_config)
