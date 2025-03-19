@@ -1,16 +1,17 @@
 from flask import Blueprint, request, jsonify
 from firebase_api import db
 from helpers import generate_uuid, get_timestamp_after_days, current_timestamp, standard_response
+from datetime import datetime, timedelta
 
 auth_bp = Blueprint('auth', __name__)
 
 def generate_unique_uuid():
     while True:
         new_uuid = str(generate_uuid())
-        users_ref = db.collection("users")
-        existing = users_ref.where("uuid", "==", new_uuid).stream()
+        existing = db.collection("users").where("uuid", "==", new_uuid).stream()
         if not any(existing):
             return new_uuid
+
 
 @auth_bp.route('/signup', methods=['POST'])
 def signup():
@@ -22,7 +23,6 @@ def signup():
     if not all([username, password, activation_key]):
         return jsonify(standard_response(False, "Missing fields"))
 
-    # Check activation key
     key_ref = db.collection("activation_keys").document(activation_key)
     key_doc = key_ref.get()
 
@@ -30,35 +30,56 @@ def signup():
         return jsonify(standard_response(False, "Invalid activation key"))
 
     key_data = key_doc.to_dict()
+    duration_days = key_data.get("duration_days")
+    if not duration_days:
+        return jsonify(standard_response(False, "Invalid key: missing duration"))
 
-    # Check user existence
+    now = current_timestamp()
+    additional_expiry = timedelta(days=duration_days)
+
     user_ref = db.collection("users").document(username)
-    if user_ref.get().exists:
-        return jsonify(standard_response(False, "User already exists"))
+    user_doc = user_ref.get()
 
-    # Generate unique UUID
-    unique_uuid = generate_unique_uuid()
+    activation_entry = {
+        "key": activation_key,
+        "duration_days": duration_days,
+        "used_at": now.isoformat()
+    }
 
-    # Set expiry and create user
-    expiry = get_timestamp_after_days(key_data.get("valid_days", 30))
-    user_ref.set({
-        "username": username,
-        "password": password,
-        "uuid": unique_uuid,
-        "expires_at": expiry.isoformat(),
-        "activation_history": [{
-            "key": activation_key,
-            "duration_days": key_data.get("valid_days", 30)
-        }]
-    })
-
-    # Delete activation key from DB after use
+    # Delete the activation key from DB
     key_ref.delete()
 
-    return jsonify(standard_response(True, "Signup successful", {
-        "uuid": unique_uuid,
-        "expires_at": expiry.isoformat()
-    }))
+    if user_doc.exists:
+        user_data = user_doc.to_dict()
+        current_expiry = datetime.fromisoformat(user_data["expires_at"])
+        new_expiry = current_expiry + additional_expiry if current_expiry > now else now + additional_expiry
+
+        user_ref.update({
+            "expires_at": new_expiry.isoformat(),
+            "activation_history": user_data.get("activation_history", []) + [activation_entry]
+        })
+
+        return jsonify(standard_response(True, "Account access extended", {
+            "expires_at": new_expiry.isoformat(),
+            "uuid": user_data.get("uuid")
+        }))
+    else:
+        # Create new user with unique UUID
+        unique_uuid = generate_unique_uuid()
+        new_expiry = now + additional_expiry
+
+        user_ref.set({
+            "username": username,
+            "password": password,
+            "uuid": unique_uuid,
+            "expires_at": new_expiry.isoformat(),
+            "activation_history": [activation_entry]
+        })
+
+        return jsonify(standard_response(True, "Signup successful", {
+            "expires_at": new_expiry.isoformat(),
+            "uuid": unique_uuid
+        }))
 
 
 @auth_bp.route('/login', methods=['POST'])
@@ -66,6 +87,9 @@ def login():
     data = request.get_json()
     username = data.get("username")
     password = data.get("password")
+
+    if not all([username, password]):
+        return jsonify(standard_response(False, "Missing fields"))
 
     user_ref = db.collection("users").document(username)
     user_doc = user_ref.get()
@@ -81,4 +105,7 @@ def login():
     if current_timestamp() > datetime.fromisoformat(user_data["expires_at"]):
         return jsonify(standard_response(False, "Account expired"))
 
-    return jsonify(standard_response(True, "Login successful", {"username": username}))
+    return jsonify(standard_response(True, "Login successful", {
+        "username": username,
+        "expires_at": user_data["expires_at"]
+    }))
