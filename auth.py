@@ -23,11 +23,11 @@ def signup():
     if not all([username, password, activation_key]):
         return jsonify(standard_response(False, "Missing fields"))
 
-    key_ref = db.collection("activation_keys").document(activation_key)
+    key_ref = db.collection("keys").document(activation_key)
     key_doc = key_ref.get()
 
     if not key_doc.exists:
-        return jsonify(standard_response(False, "Invalid activation key"))
+        return jsonify(standard_response(False, "Invalid key"))
 
     key_data = key_doc.to_dict()
     duration_days = key_data.get("duration_days")
