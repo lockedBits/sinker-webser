@@ -3,3 +3,4 @@ firebase-admin
 solders
 python-dotenv
 bcrypt
+gunicorn
