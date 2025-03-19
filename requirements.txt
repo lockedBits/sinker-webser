@@ -2,5 +2,5 @@ Flask
 firebase-admin
 solders
 python-dotenv
-bcrypt
+base58
 gunicorn

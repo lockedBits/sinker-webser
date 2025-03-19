@@ -1,20 +1,26 @@
 from flask import Flask
-from app.services.firebase_service import init_firebase
+from firebase_admin import credentials, firestore, initialize_app
+import json, os
+
 from app.routes.auth import auth_bp
-from app.routes.admin import admin_bp
 
 app = Flask(__name__)
 
-# Initialize Firebase
-init_firebase()
+# Firebase setup
+firebase_config = json.loads(os.getenv("FIREBASE_CREDENTIALS"))
+cred = credentials.Certificate(firebase_config)
+initialize_app(cred)
+db = firestore.client()
+
+import app
+app.db = db
 
 # Register Routes
-app.register_blueprint(auth_bp, url_prefix="/auth")
-app.register_blueprint(admin_bp, url_prefix="/admin")
+app.register_blueprint(auth_bp, url_prefix="/api/auth")
 
 @app.route("/")
 def index():
-    return {"status": "Server is running"}
+    return {"status": "success", "message": "Server running"}
 
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=5000)
+    app.run(debug=True)
