@@ -4,11 +4,8 @@ from app.services.key_service import create_activation_key, list_keys
 
 admin_bp = Blueprint("admin", __name__)
 
-# Simple Admin check (enhance later)
-ADMIN_SECRET = "your-admin-secret"  # put in env for production
-
 def check_admin(auth):
-    return auth == ADMIN_SECRET
+    return auth == config = json.loads(os.getenv("ADMIN_SECRET"))
 
 @admin_bp.route("/create-key", methods=["POST"])
 def create_key():
