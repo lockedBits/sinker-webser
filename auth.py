@@ -1,7 +1,6 @@
 from flask import Blueprint, request, jsonify
 from firebase_api import db
 from helpers import generate_uuid, get_timestamp_after_days, current_timestamp, standard_response
-from datetime import datetime, timedelta
 
 auth_bp = Blueprint('auth', __name__)
 
@@ -22,69 +21,29 @@ def signup():
         return jsonify(standard_response(False, "Invalid activation key"))
 
     key_data = key_doc.to_dict()
-    duration_days = key_data.get("valid_days", 30)
+    if key_data.get("used"):
+        return jsonify(standard_response(False, "Activation key already used"))
 
     user_ref = db.collection("users").document(username)
-    user_doc = user_ref.get()
+    if user_ref.get().exists:
+        return jsonify(standard_response(False, "User already exists"))
 
-    now = current_timestamp()
-
-    if user_doc.exists:
-        user_data = user_doc.to_dict()
-        current_expiry = datetime.fromisoformat(user_data["expires_at"])
-
-        # Calculate new expiry based on current expiry or now, whichever is later
-        base_time = max(current_expiry, now)
-        new_expiry = base_time + duration_days
-
-        user_ref.update({
-            "expires_at": new_expiry.isoformat(),
-            "activation_history": user_data.get("activation_history", []) + [{
-                "key": activation_key,
-                "duration_days": duration_days,
-                "applied_at": now.isoformat()
-            }]
-        })
-
-        key_ref.delete()
-
-        return jsonify(standard_response(True, "Account already exists. Duration added.", {
-            "username": username,
-            "new_expiry": new_expiry.isoformat()
-        }))
-
-    # New user: generate UUID
-    user_uuid = generate_uuid()
-    new_expiry = now + duration_days
-
+    expiry = get_timestamp_after_days(key_data.get("valid_days", 30))
     user_ref.set({
-        "uuid": user_uuid,
         "username": username,
         "password": password,
-        "expires_at": new_expiry.isoformat(),
-        "activation_history": [{
-            "key": activation_key,
-            "duration_days": duration_days,
-            "applied_at": now.isoformat()
-        }]
+        "expires_at": expiry.isoformat()
     })
 
-    key_ref.delete()
+    key_ref.update({"used": True})
+    return jsonify(standard_response(True, "Signup successful", {"expires_at": expiry.isoformat()}))
 
-    return jsonify(standard_response(True, "Signup successful", {
-        "username": username,
-        "uuid": user_uuid,
-        "expires_at": new_expiry.isoformat()
-    }))
 
 @auth_bp.route('/login', methods=['POST'])
 def login():
     data = request.get_json()
     username = data.get("username")
     password = data.get("password")
-
-    if not all([username, password]):
-        return jsonify(standard_response(False, "Missing fields"))
 
     user_ref = db.collection("users").document(username)
     user_doc = user_ref.get()
@@ -100,7 +59,4 @@ def login():
     if current_timestamp() > datetime.fromisoformat(user_data["expires_at"]):
         return jsonify(standard_response(False, "Account expired"))
 
-    return jsonify(standard_response(True, "Login successful", {
-        "username": username,
-        "expires_at": user_data["expires_at"]
-    }))
+    return jsonify(standard_response(True, "Login successful", {"username": username}))
