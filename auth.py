@@ -22,51 +22,60 @@ def signup():
         return jsonify(standard_response(False, "Invalid activation key"))
 
     key_data = key_doc.to_dict()
-    duration_days = key_data.get("duration_days")
-    if not duration_days:
-        return jsonify(standard_response(False, "Invalid key: missing duration"))
-
-    now = current_timestamp()
-    additional_expiry = timedelta(days=duration_days)
+    duration_days = key_data.get("valid_days", 30)
 
     user_ref = db.collection("users").document(username)
     user_doc = user_ref.get()
 
-    activation_entry = {
-        "key": activation_key,
-        "duration_days": duration_days,
-        "used_at": now.isoformat()
-    }
-
-    # Delete the activation key now
-    key_ref.delete()
+    now = current_timestamp()
 
     if user_doc.exists:
         user_data = user_doc.to_dict()
         current_expiry = datetime.fromisoformat(user_data["expires_at"])
-        new_expiry = current_expiry + additional_expiry if current_expiry > now else now + additional_expiry
+
+        # Calculate new expiry based on current expiry or now, whichever is later
+        base_time = max(current_expiry, now)
+        new_expiry = base_time + duration_days
 
         user_ref.update({
             "expires_at": new_expiry.isoformat(),
-            "activation_history": user_data.get("activation_history", []) + [activation_entry]
+            "activation_history": user_data.get("activation_history", []) + [{
+                "key": activation_key,
+                "duration_days": duration_days,
+                "applied_at": now.isoformat()
+            }]
         })
 
-        return jsonify(standard_response(True, "Account access extended", {
-            "expires_at": new_expiry.isoformat()
-        }))
-    else:
-        # Create new user
-        new_expiry = now + additional_expiry
-        user_ref.set({
+        key_ref.delete()
+
+        return jsonify(standard_response(True, "Account already exists. Duration added.", {
             "username": username,
-            "password": password,
-            "expires_at": new_expiry.isoformat(),
-            "activation_history": [activation_entry]
-        })
-        return jsonify(standard_response(True, "Signup successful", {
-            "expires_at": new_expiry.isoformat()
+            "new_expiry": new_expiry.isoformat()
         }))
 
+    # New user: generate UUID
+    user_uuid = generate_uuid()
+    new_expiry = now + duration_days
+
+    user_ref.set({
+        "uuid": user_uuid,
+        "username": username,
+        "password": password,
+        "expires_at": new_expiry.isoformat(),
+        "activation_history": [{
+            "key": activation_key,
+            "duration_days": duration_days,
+            "applied_at": now.isoformat()
+        }]
+    })
+
+    key_ref.delete()
+
+    return jsonify(standard_response(True, "Signup successful", {
+        "username": username,
+        "uuid": user_uuid,
+        "expires_at": new_expiry.isoformat()
+    }))
 
 @auth_bp.route('/login', methods=['POST'])
 def login():
