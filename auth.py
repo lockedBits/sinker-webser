@@ -31,8 +31,10 @@ def signup():
 
     key_data = key_doc.to_dict()
     duration_days = key_data.get("duration_days")
-    if not duration_days:
-        return jsonify(standard_response(False, "Invalid key: missing duration"))
+    key_type = key_data.get("type")
+
+    if not duration_days or not key_type:
+        return jsonify(standard_response(False, "Invalid key: missing duration or type"))
 
     now = current_timestamp()
     additional_expiry = timedelta(days=duration_days)
@@ -43,6 +45,7 @@ def signup():
     activation_entry = {
         "key": activation_key,
         "duration_days": duration_days,
+        "type": key_type,
         "used_at": now.isoformat()
     }
 
@@ -50,7 +53,16 @@ def signup():
     key_ref.delete()
 
     if user_doc.exists:
+        # Existing user: only allow topup keys
+        if key_type != "topup":
+            return jsonify(standard_response(False, "Only 'topup' keys can be used for existing accounts"))
+
         user_data = user_doc.to_dict()
+
+        # Check if password matches
+        if user_data.get("password") != password:
+            return jsonify(standard_response(False, "Incorrect password"))
+
         current_expiry = datetime.fromisoformat(user_data["expires_at"])
         new_expiry = current_expiry + additional_expiry if current_expiry > now else now + additional_expiry
 
@@ -63,8 +75,12 @@ def signup():
             "expires_at": new_expiry.isoformat(),
             "uuid": user_data.get("uuid")
         }))
+
     else:
-        # Create new user with unique UUID
+        # New user: only allow activation keys
+        if key_type != "activation":
+            return jsonify(standard_response(False, "Only 'activation' keys can be used for new accounts"))
+
         unique_uuid = generate_unique_uuid()
         new_expiry = now + additional_expiry
 
@@ -107,5 +123,5 @@ def login():
 
     return jsonify(standard_response(True, "Login successful", {
         "username": username,
-        "expires_at": user_data["expires_at"]
+        "uuid" : user_data["uuid"]
     }))
