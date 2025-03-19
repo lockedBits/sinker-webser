@@ -2,3 +2,4 @@ Flask
 firebase-admin
 requests
 gunicorn
+flask-cors
