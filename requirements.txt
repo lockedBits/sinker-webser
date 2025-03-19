@@ -1,6 +1,4 @@
 Flask
 firebase-admin
-solders
-python-dotenv
-base58
+requests
 gunicorn
