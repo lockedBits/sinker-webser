@@ -49,9 +49,6 @@ def signup():
         "used_at": now.isoformat()
     }
 
-    # Delete the activation key from DB
-    key_ref.delete()
-
     if user_doc.exists:
         # Existing user: only allow topup keys
         if key_type != "topup":
@@ -62,6 +59,9 @@ def signup():
         # Check if password matches
         if user_data.get("password") != password:
             return jsonify(standard_response(False, "Incorrect password"))
+
+        # Delete the activation key from DB
+        key_ref.delete()
 
         current_expiry = datetime.fromisoformat(user_data["expires_at"])
         new_expiry = current_expiry + additional_expiry if current_expiry > now else now + additional_expiry
@@ -83,6 +83,9 @@ def signup():
 
         unique_uuid = generate_unique_uuid()
         new_expiry = now + additional_expiry
+
+        # Delete the activation key from DB
+        key_ref.delete()
 
         user_ref.set({
             "username": username,
