@@ -90,9 +90,9 @@ def signup():
         key_ref.delete()
 
         user_ref.set({
+            "uuid": unique_uuid,
             "username": username,
             "password": password,
-            "uuid": unique_uuid,
             "expires_at": new_expiry.isoformat(),
             "activation_history": [activation_entry]
         })
@@ -112,8 +112,9 @@ def login():
     if not all([username, password]):
         return jsonify(standard_response(False, "Missing fields"))
 
-    user_ref = db.collection("users").document(username)
-    user_doc = user_ref.get()
+    user_query = db.collection("users").where("username", "==", username).limit(1).stream()
+    user_doc = next(user_query, None)
+
 
     if not user_doc.exists:
         return jsonify(standard_response(False, "User not found"))
