@@ -107,30 +107,6 @@ def signup():
             "uuid": unique_uuid
         }))
 
-    else:
-        # New user: only allow activation keys
-        if key_type != "activation":
-            return jsonify(standard_response(False, "Only 'activation' keys can be used for new accounts"))
-
-        unique_uuid = generate_unique_uuid()
-        new_expiry = now + additional_expiry
-
-        # Delete the activation key from DB
-        key_ref.delete()
-
-        user_ref.set({
-            "uuid": unique_uuid,
-            "username": username,
-            "password": password,
-            "expires_at": new_expiry.isoformat(),
-            "activation_history": [activation_entry]
-        })
-
-        return jsonify(standard_response(True, "Signup successful", {
-            "expires_at": new_expiry.isoformat(),
-            "uuid": unique_uuid
-        }))
-
 
 @auth_bp.route('/login', methods=['POST'])
 def login():
