@@ -3,6 +3,8 @@ from firebase_api import db
 from helpers import generate_uuid, get_timestamp_after_days, current_timestamp, standard_response
 from datetime import datetime, timedelta
 
+from sessionManager import *
+
 auth_bp = Blueprint('auth', __name__)
 
 def generate_unique_uuid():
@@ -124,7 +126,29 @@ def login():
     if current_timestamp() > datetime.fromisoformat(user_data["expires_at"]):
         return jsonify(standard_response(False, "Account expired"))
 
-    return jsonify(standard_response(True, "Login successful", {
-        "username": username,
-        "uuid" : user_data["uuid"]
-    }))
+    # Create session token and store it in Firestore
+    token = create_session_token(user_data["uuid"])
+
+    return jsonify(standard_response(True, "Login successful",
+        "username" : username,
+        {
+        "token": token
+        }
+    ))
+
+
+@auth_bp.route('/logout', methods=['POST'])
+def logout():
+    data = request.get_json()
+    token = data.get("token")
+
+    if not token:
+        return jsonify(standard_response(False, "Missing token"))
+
+    uuid = validate_session_token(token)
+
+    if not uuid:
+        return jsonify(standard_response(False, "Invalid or expired session"))
+
+    invalidate_user_session(uuid)
+    return jsonify(standard_response(True, "Logout successful"))
