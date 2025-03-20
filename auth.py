@@ -130,7 +130,6 @@ def login():
     token = create_session_token(user_data["uuid"])
 
     return jsonify(standard_response(True, "Login successful",
-        "username" : username,
         {
         "token": token
         }
