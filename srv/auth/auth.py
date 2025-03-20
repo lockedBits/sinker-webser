@@ -6,8 +6,6 @@ from srv.utils.helpers import generate_uuid, get_timestamp_after_days, current_t
 
 from srv.session.sessionManager import *
 
-auth_bp = Blueprint('auth', __name__)
-
 def generate_unique_uuid():
     while True:
         new_uuid = str(generate_uuid())
@@ -16,7 +14,6 @@ def generate_unique_uuid():
             return new_uuid
 
 
-@auth_bp.route('/signup', methods=['POST'])
 def signup():
     data = request.get_json()
     username = data.get("username")
@@ -115,7 +112,6 @@ def signup():
         }))
 
 
-@auth_bp.route('/login', methods=['POST'])
 def login():
     data = request.get_json()
     username = data.get("username")
@@ -150,8 +146,6 @@ def login():
         "token": token
     }))
 
-
-@auth_bp.route('/logout', methods=['POST'])
 def logout():
     data = request.get_json()
     token = data.get("token")
