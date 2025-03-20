@@ -16,7 +16,6 @@ def generate_unique_uuid():
 
 
 @auth_bp.route('/signup', methods=['POST'])
-@auth_bp.route('/signup', methods=['POST'])
 def signup():
     data = request.get_json()
     username = data.get("username")
@@ -42,7 +41,6 @@ def signup():
     now = current_timestamp()
     additional_expiry = timedelta(days=duration_days)
 
-    # Check if user already exists by username
     existing_user_query = db.collection("users").where("username", "==", username).limit(1).stream()
     existing_user_doc = next(existing_user_query, None)
 
@@ -54,29 +52,29 @@ def signup():
     }
 
     if existing_user_doc:
-        # Existing user: only allow topup keys
         if key_type != "topup":
             return jsonify(standard_response(False, "Only 'topup' keys can be used for existing accounts"))
 
         user_data = existing_user_doc.to_dict()
 
-        # Check if password matches
-        if user_data.get("password") != password:
+        if user_data.get("credentials", {}).get("password") != password:
             return jsonify(standard_response(False, "Incorrect password"))
 
-        # Delete the activation key from DB
         key_ref.delete()
 
-        current_expiry = datetime.fromisoformat(user_data["expires_at"])
+        access_data = user_data.get("access", {})
+        current_expiry_str = access_data.get("expires_at")
+        current_expiry = datetime.fromisoformat(current_expiry_str) if current_expiry_str else now
         new_expiry = current_expiry + additional_expiry if current_expiry > now else now + additional_expiry
 
-        # Update user using UUID-based document ID
+        activation_history = access_data.get("activation_history", [])
+        activation_history.append(activation_entry)
+
         user_ref = db.collection("users").document(user_data["uuid"])
         user_ref.update({
             "access.expires_at": new_expiry.isoformat(),
-            "access.activation_history": user_data.get("access", {}).get("activation_history", []) + [activation_entry]
+            "access.activation_history": activation_history
         })
-
 
         return jsonify(standard_response(True, "Account access extended", {
             "expires_at": new_expiry.isoformat(),
@@ -84,14 +82,12 @@ def signup():
         }))
 
     else:
-        # New user: only allow activation keys
         if key_type != "activation":
             return jsonify(standard_response(False, "Only 'activation' keys can be used for new accounts"))
 
         unique_uuid = generate_unique_uuid()
         new_expiry = now + additional_expiry
 
-        # Delete the activation key from DB
         key_ref.delete()
 
         user_ref = db.collection("users").document(unique_uuid)
@@ -119,7 +115,6 @@ def signup():
 
 
 @auth_bp.route('/login', methods=['POST'])
-@auth_bp.route('/login', methods=['POST'])
 def login():
     data = request.get_json()
     username = data.get("username")
@@ -139,10 +134,15 @@ def login():
     if user_data.get("credentials", {}).get("password") != password:
         return jsonify(standard_response(False, "Incorrect password"))
 
-    if current_timestamp() > datetime.fromisoformat(user_data["expires_at"]):
+    access_data = user_data.get("access", {})
+    expires_at_str = access_data.get("expires_at")
+
+    if not expires_at_str:
+        return jsonify(standard_response(False, "Missing account expiry info"))
+
+    if current_timestamp() > datetime.fromisoformat(expires_at_str):
         return jsonify(standard_response(False, "Account expired"))
 
-    # Create session token and store it in Firestore
     token = create_session_token(user_data["uuid"])
 
     return jsonify(standard_response(True, "Login successful", {
