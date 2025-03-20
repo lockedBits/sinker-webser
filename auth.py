@@ -73,9 +73,10 @@ def signup():
         # Update user using UUID-based document ID
         user_ref = db.collection("users").document(user_data["uuid"])
         user_ref.update({
-            "expires_at": new_expiry.isoformat(),
-            "activation_history": user_data.get("activation_history", []) + [activation_entry]
+            "access.expires_at": new_expiry.isoformat(),
+            "access.activation_history": user_data.get("access", {}).get("activation_history", []) + [activation_entry]
         })
+
 
         return jsonify(standard_response(True, "Account access extended", {
             "expires_at": new_expiry.isoformat(),
@@ -97,9 +98,18 @@ def signup():
         user_ref.set({
             "uuid": unique_uuid,
             "username": username,
-            "password": password,
-            "expires_at": new_expiry.isoformat(),
-            "activation_history": [activation_entry]
+            "credentials": {
+                "password": password
+            },
+            "access": {
+                "expires_at": new_expiry.isoformat(),
+                "activation_history": [activation_entry]
+            },
+            "session": {
+                "active_token": None,
+                "created_at": None,
+                "token_history": []
+            }
         })
 
         return jsonify(standard_response(True, "Signup successful", {
@@ -108,6 +118,7 @@ def signup():
         }))
 
 
+@auth_bp.route('/login', methods=['POST'])
 @auth_bp.route('/login', methods=['POST'])
 def login():
     data = request.get_json()
@@ -120,13 +131,12 @@ def login():
     user_query = db.collection("users").where("username", "==", username).limit(1).stream()
     user_doc = next(user_query, None)
 
-
-    if not user_doc.exists:
+    if not user_doc:
         return jsonify(standard_response(False, "User not found"))
 
     user_data = user_doc.to_dict()
 
-    if user_data["password"] != password:
+    if user_data.get("credentials", {}).get("password") != password:
         return jsonify(standard_response(False, "Incorrect password"))
 
     if current_timestamp() > datetime.fromisoformat(user_data["expires_at"]):
@@ -135,11 +145,9 @@ def login():
     # Create session token and store it in Firestore
     token = create_session_token(user_data["uuid"])
 
-    return jsonify(standard_response(True, "Login successful",
-        {
+    return jsonify(standard_response(True, "Login successful", {
         "token": token
-        }
-    ))
+    }))
 
 
 @auth_bp.route('/logout', methods=['POST'])
