@@ -35,12 +35,14 @@ def create_session_token(uuid):
                 "token_history": token_history
             })
 
-    # Set new token as active session
-    user_ref.update({
-        "activeSession": token
-    })
+    # ✅ Merge active session info regardless of doc existence
+    user_ref.set({
+        "activeSession": token,
+        "sessionCreatedAt": datetime.utcnow().isoformat()
+    }, merge=True)
 
     return token
+
 
 
 def validate_session_token(token):
