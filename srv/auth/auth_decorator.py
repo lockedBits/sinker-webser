@@ -3,8 +3,8 @@
 from functools import wraps
 from flask import request, jsonify
 
-from srv/session/session_manager import validate_session_token
-from srv/utils/helpers import standard_response
+from srv.session.session_manager import validate_session_token
+from srv.utils.helpers import standard_response
 
 def require_auth(func):
     @wraps(func)

@@ -2,8 +2,8 @@ import jwt
 import os
 from datetime import datetime, timedelta
 
-from srv/firebase/firebase_api import db
-from srv/utils/helpers import current_timestamp
+from srv.firebase.firebase_api import db
+from srv.utils.helpers import current_timestamp
 
 # Secret key for signing JWTs
 SECRET_KEY = os.getenv("JWT_SECRET", "your_secret_key")
