@@ -14,7 +14,7 @@ def generate_unique_uuid():
             return new_uuid
 
 
-def signup():
+def signup(request):
     data = request.get_json()
     username = data.get("username")
     password = data.get("password")
@@ -112,7 +112,7 @@ def signup():
         }))
 
 
-def login():
+def login(request):
     data = request.get_json()
     username = data.get("username")
     password = data.get("password")
