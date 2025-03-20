@@ -16,6 +16,7 @@ def generate_unique_uuid():
 
 
 @auth_bp.route('/signup', methods=['POST'])
+@auth_bp.route('/signup', methods=['POST'])
 def signup():
     data = request.get_json()
     username = data.get("username")
@@ -41,8 +42,9 @@ def signup():
     now = current_timestamp()
     additional_expiry = timedelta(days=duration_days)
 
-    user_ref = db.collection("users").document(username)
-    user_doc = user_ref.get()
+    # Check if user already exists by username
+    existing_user_query = db.collection("users").where("username", "==", username).limit(1).stream()
+    existing_user_doc = next(existing_user_query, None)
 
     activation_entry = {
         "key": activation_key,
@@ -51,12 +53,12 @@ def signup():
         "used_at": now.isoformat()
     }
 
-    if user_doc.exists:
+    if existing_user_doc:
         # Existing user: only allow topup keys
         if key_type != "topup":
             return jsonify(standard_response(False, "Only 'topup' keys can be used for existing accounts"))
 
-        user_data = user_doc.to_dict()
+        user_data = existing_user_doc.to_dict()
 
         # Check if password matches
         if user_data.get("password") != password:
@@ -68,6 +70,8 @@ def signup():
         current_expiry = datetime.fromisoformat(user_data["expires_at"])
         new_expiry = current_expiry + additional_expiry if current_expiry > now else now + additional_expiry
 
+        # Update user using UUID-based document ID
+        user_ref = db.collection("users").document(user_data["uuid"])
         user_ref.update({
             "expires_at": new_expiry.isoformat(),
             "activation_history": user_data.get("activation_history", []) + [activation_entry]
@@ -76,6 +80,31 @@ def signup():
         return jsonify(standard_response(True, "Account access extended", {
             "expires_at": new_expiry.isoformat(),
             "uuid": user_data.get("uuid")
+        }))
+
+    else:
+        # New user: only allow activation keys
+        if key_type != "activation":
+            return jsonify(standard_response(False, "Only 'activation' keys can be used for new accounts"))
+
+        unique_uuid = generate_unique_uuid()
+        new_expiry = now + additional_expiry
+
+        # Delete the activation key from DB
+        key_ref.delete()
+
+        user_ref = db.collection("users").document(unique_uuid)
+        user_ref.set({
+            "uuid": unique_uuid,
+            "username": username,
+            "password": password,
+            "expires_at": new_expiry.isoformat(),
+            "activation_history": [activation_entry]
+        })
+
+        return jsonify(standard_response(True, "Signup successful", {
+            "expires_at": new_expiry.isoformat(),
+            "uuid": unique_uuid
         }))
 
     else:
