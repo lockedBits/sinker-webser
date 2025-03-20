@@ -4,7 +4,7 @@ from datetime import datetime, timedelta
 from srv/firebase/firebase_api import db
 from srv/utils/helpers import generate_uuid, get_timestamp_after_days, current_timestamp, standard_response
 
-from sessionManager import *
+from srv/session/sessionManager import *
 
 auth_bp = Blueprint('auth', __name__)
 
