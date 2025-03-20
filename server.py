@@ -1,6 +1,7 @@
 from flask import Flask
-from auth import auth_bp
 from flask_cors import CORS
+
+from srv/auth/auth import auth_bp
 
 app = Flask(__name__)
 CORS(app)  # <-- This enables CORS globally

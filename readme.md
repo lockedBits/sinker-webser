@@ -1,2 +1,2 @@
 listen.
-this shit gotat look a little professional.
+this shit gotta look a little professional.
