@@ -16,8 +16,7 @@ def generate_unique_uuid():
             return new_uuid
 
 
-@app.route('/signup', methods=['POST'])
-def signup():
+def signup(request):
     data = request.get_json()
     email = data.get('email')
     password = data.get('password')
