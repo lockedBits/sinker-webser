@@ -6,3 +6,4 @@ flask-cors
 PyJWT
 solana
 base58
+solders
