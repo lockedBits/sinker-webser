@@ -130,7 +130,7 @@ def signup():
         }))
 
     except Exception as e:
-        return jsonify(standard_response(False, f"Signup failed: {str(e)}")))
+        return jsonify(standard_response(False, f"Signup failed: {str(e)}"))
 
 
 def login(request):
