@@ -6,6 +6,8 @@ from srv.utils.helpers import generate_uuid, get_timestamp_after_days, current_t
 
 from srv.session.sessionManager import *
 
+from srv.sol.solanaHelper import SolanaHelper
+
 def generate_unique_uuid():
     while True:
         new_uuid = str(generate_uuid())
@@ -14,105 +16,121 @@ def generate_unique_uuid():
             return new_uuid
 
 
-def signup(request):
+@app.route('/signup', methods=['POST'])
+def signup():
     data = request.get_json()
-    username = data.get("username")
-    password = data.get("password")
-    activation_key = data.get("activation_key")
+    email = data.get('email')
+    password = data.get('password')
+    activation_key = data.get('activation_key')
 
-    if not all([username, password, activation_key]):
+    if not email or not password or not activation_key:
         return jsonify(standard_response(False, "Missing fields"))
 
-    key_ref = db.collection("keys").document(activation_key)
-    key_doc = key_ref.get()
+    try:
+        # Check if user already exists
+        existing_user = auth.get_user_by_email(email)
+        user_uuid = existing_user.uid
+        user_doc = db.collection('users').document(user_uuid).get()
+        
+        # Check if account already activated (top-up mode)
+        if user_doc.exists:
+            user_data = user_doc.to_dict()
+            key_ref = db.collection('activation_keys').document(activation_key)
+            key_doc = key_ref.get()
 
-    if not key_doc.exists:
-        return jsonify(standard_response(False, "Invalid key"))
+            if not key_doc.exists:
+                return jsonify(standard_response(False, "Invalid activation key"))
 
-    key_data = key_doc.to_dict()
-    duration_days = key_data.get("duration_days")
-    key_type = key_data.get("type")
+            key_data = key_doc.to_dict()
+            duration_days = key_data.get("duration_days", 30)
 
-    if not duration_days or not key_type:
-        return jsonify(standard_response(False, "Invalid key: missing duration or type"))
+            current_expiry = user_data.get("expires_at")
+            current_expiry = datetime.fromisoformat(current_expiry) if current_expiry else datetime.utcnow()
 
-    now = current_timestamp()
-    additional_expiry = timedelta(days=duration_days)
+            if current_expiry < datetime.utcnow():
+                current_expiry = datetime.utcnow()
 
-    existing_user_query = db.collection("users").where("username", "==", username).limit(1).stream()
-    existing_user_doc = next(existing_user_query, None)
+            new_expiry = current_expiry + timedelta(days=duration_days)
 
-    activation_entry = {
-        "key": activation_key,
-        "duration_days": duration_days,
-        "type": key_type,
-        "used_at": now.isoformat()
-    }
-
-    if existing_user_doc:
-        if key_type != "topup":
-            return jsonify(standard_response(False, "Only 'topup' keys can be used for existing accounts"))
-
-        user_data = existing_user_doc.to_dict()
-
-        if user_data.get("credentials", {}).get("password") != password:
-            return jsonify(standard_response(False, "Incorrect password"))
-
-        key_ref.delete()
-
-        access_data = user_data.get("access", {})
-        current_expiry_str = access_data.get("expires_at")
-        current_expiry = datetime.fromisoformat(current_expiry_str) if current_expiry_str else now
-        new_expiry = current_expiry + additional_expiry if current_expiry > now else now + additional_expiry
-
-        activation_history = access_data.get("activation_history", [])
-        activation_history.append(activation_entry)
-
-        user_ref = db.collection("users").document(user_data["uuid"])
-        user_ref.update({
-            "access.expires_at": new_expiry.isoformat(),
-            "access.activation_history": activation_history
-        })
-
-        return jsonify(standard_response(True, "Account access extended", {
-            "expires_at": new_expiry.isoformat(),
-            "uuid": user_data.get("uuid")
-        }))
-
-    else:
-        if key_type != "activation":
-            return jsonify(standard_response(False, "Only 'activation' keys can be used for new accounts"))
-
-        unique_uuid = generate_unique_uuid()
-        new_expiry = now + additional_expiry
-
-        key_ref.delete()
-
-        user_ref = db.collection("users").document(unique_uuid)
-        user_ref.set({
-            "uuid": unique_uuid,
-            "username": username,
-            "credentials": {
-                "password": password
-            },
-            "access": {
+            # Update user expiry
+            db.collection('users').document(user_uuid).update({
                 "expires_at": new_expiry.isoformat(),
-                "activation_history": [activation_entry]
+                "activation_history": firestore.ArrayUnion([{
+                    "key": activation_key,
+                    "used_at": datetime.utcnow().isoformat(),
+                    "duration_days": duration_days
+                }])
+            })
+
+            key_ref.delete()
+
+            return jsonify(standard_response(True, "Account topped up successfully", {
+                "expires_at": new_expiry.isoformat(),
+                "uuid": user_uuid
+            }))
+
+        else:
+            return jsonify(standard_response(False, "Account already exists but no user record found"))  # should not happen
+
+    except auth.UserNotFoundError:
+        pass  # continue with signup flow
+
+    # New signup flow
+    try:
+        key_ref = db.collection('activation_keys').document(activation_key)
+        key_doc = key_ref.get()
+
+        if not key_doc.exists:
+            return jsonify(standard_response(False, "Invalid activation key"))
+
+        key_data = key_doc.to_dict()
+        duration_days = key_data.get("duration_days", 30)
+        new_expiry = datetime.utcnow() + timedelta(days=duration_days)
+
+        # Create Firebase Auth User
+        user = auth.create_user(email=email, password=password)
+        unique_uuid = user.uid
+
+        # Generate Solana Wallet
+        wallet = SolanaHelper.generate_wallet()
+        if not wallet:
+            return jsonify(standard_response(False, "Failed to generate wallet"))
+
+        # Store user in Firestore
+        db.collection('users').document(unique_uuid).set({
+            "email": email,
+            "expires_at": new_expiry.isoformat(),
+            "activation_history": [{
+                "key": activation_key,
+                "used_at": datetime.utcnow().isoformat(),
+                "duration_days": duration_days
+            }],
+            "solana": {
+                "privateKey": wallet["private_key"],
+                "publicKey": wallet["public_key"]
             },
             "session": {
                 "active_token": None,
                 "created_at": None,
                 "token_history": []
-            }
+            },
+            "coins": 0
         })
 
+        # Delete the activation key
+        key_ref.delete()
+
+        # Generate a session token
         token = create_session_token(unique_uuid)
 
         return jsonify(standard_response(True, "Signup successful", {
             "expires_at": new_expiry.isoformat(),
-            "uuid": unique_uuid,
-            "token": token
+            "token": token,
+            "uuid": unique_uuid
         }))
+
+    except Exception as e:
+        return jsonify(standard_response(False, f"Signup failed: {str(e)}")))
 
 
 def login(request):
