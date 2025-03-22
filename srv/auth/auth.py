@@ -106,9 +106,12 @@ def signup(request):
             }
         })
 
+        token = create_session_token(unique_uuid)
+
         return jsonify(standard_response(True, "Signup successful", {
             "expires_at": new_expiry.isoformat(),
-            "uuid": unique_uuid
+            "uuid": unique_uuid,
+            "token": token
         }))
 
 
