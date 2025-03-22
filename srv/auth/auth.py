@@ -146,7 +146,7 @@ def login(request):
         "token": token
     }))
 
-def logout():
+def logout(request):
     data = request.get_json()
     token = data.get("token")
 
@@ -160,3 +160,16 @@ def logout():
 
     invalidate_user_session(uuid)
     return jsonify(standard_response(True, "Logout successful"))
+
+
+def validate_token(request):
+    data = request.get_json()
+    token = data.get("token")
+    if not token:
+        return jsonify(standard_response(False, "Missing token"))
+
+    uuid = validate_session_token(token)
+    if not uuid:
+        return jsonify(standard_response(False, "Invalid or expired session"))
+
+    return jsonify(standard_response(True, "Token valid", {"uuid": uuid}))
