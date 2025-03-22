@@ -109,7 +109,7 @@ def signup(request):
                 "token_history": []
             },
             "solana": {
-                "privateKey": wallet["private_key"]
+                "privateKey": wallet["private_key"],
                 "publicKey" : wallet["public_key"]
             }
         })
