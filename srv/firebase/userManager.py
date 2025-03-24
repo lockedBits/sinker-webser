@@ -12,6 +12,9 @@ def get_user_by_uuid(uuid):
     except Exception as e:
         print(f"[user_manager] Error fetching user by UUID: {e}")
         return None
-        
+
 def update_user_field(uuid, field, value):
     db.collection("users").document(uuid).set({field: value}, merge=True)
+
+def update_user_nested_field(uuid, field_dict):
+    db.collection("users").document(uuid).update(field_dict)

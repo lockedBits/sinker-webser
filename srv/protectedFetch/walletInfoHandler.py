@@ -1,7 +1,7 @@
 from flask import jsonify
 from datetime import datetime, timezone
 
-from srv.firebase.userManager import get_user_by_uuid, update_user_field
+from srv.firebase.userManager import get_user_by_uuid, update_user_nested_field
 from srv.sol.solanaHelper import SolanaHelper
 from srv.utils.solUtils import get_sol_price_usd
 from srv.utils.helpers import standard_response
@@ -17,7 +17,7 @@ def format_time_elapsed(seconds):
         parts.append(f"{hours}h")
     if minutes > 0:
         parts.append(f"{minutes}m")
-    if secs > 0 or not parts:  # Always show seconds if it's the only unit
+    if secs > 0 or not parts:
         parts.append(f"{secs}s")
 
     return " ".join(parts)
@@ -29,8 +29,8 @@ def getWalletInfo(uuid):
         return jsonify(standard_response(False, "User not found")), 404
 
     solana_data = user_data.get("solana", {})
-    public_key = solana_data.get("publicKey", None)
-    private_key = solana_data.get("privateKey", None)  # hide if needed
+    public_key = solana_data.get("publicKey")
+    private_key = solana_data.get("privateKey")  # Hide in production
     username = user_data.get("username", "Unknown")
 
     if not public_key:
@@ -40,35 +40,33 @@ def getWalletInfo(uuid):
     sol_price_usd = get_sol_price_usd()
     netMode = SolanaHelper.getMode()
 
-    # Get previous balance and check time if they exist
-    prev_balance = solana_data.get("last_balance")
-    prev_checked_at_str = solana_data.get("last_checked_at")
+    # Historical info
+    prev_balance = solana_data.get("last_balance_value")
+    prev_checked_at_str = solana_data.get("last_balance_check")
 
-    percentage_change = None
-    time_elapsed = None
-    time_elapsed_human = None
+    percent_change = None
+    time_elapsed_readable = None
 
-    if prev_balance is not None:
+    if prev_balance is not None and prev_balance > 0:
         try:
-            if prev_balance != 0:
-                percentage_change = ((current_balance - prev_balance) / prev_balance) * 100
-            else:
-                percentage_change = 100.0
+            percent_change = round(((current_balance - prev_balance) / prev_balance) * 100, 2)
         except Exception as e:
-            print("Error calculating % change:", e)
+            print("Error calculating percent change:", e)
 
     if prev_checked_at_str:
         try:
             prev_time = datetime.fromisoformat(prev_checked_at_str)
-            now_time = datetime.now(timezone.utc)
-            time_elapsed = (now_time - prev_time).total_seconds()
-            time_elapsed_human = format_time_elapsed(time_elapsed)
+            now = datetime.now(timezone.utc)
+            seconds_elapsed = (now - prev_time).total_seconds()
+            time_elapsed_readable = format_time_elapsed(seconds_elapsed)
         except Exception as e:
-            print("Error calculating time difference:", e)
+            print("Error calculating time elapsed:", e)
 
-    # Update Firestore fields (create them if missing)
-    update_user_field(uuid, "solana.last_balance_value", current_balance)
-    update_user_field(uuid, "solana.last_balance_check", datetime.now(timezone.utc).isoformat())
+    # Update Firestore
+    update_user_nested_field(uuid, {
+        "solana.last_balance_value": current_balance,
+        "solana.last_balance_check": datetime.now(timezone.utc).isoformat()
+    })
 
     response_data = {
         "wallet_public_key": public_key,
@@ -76,10 +74,13 @@ def getWalletInfo(uuid):
         "username": username,
         "balance": round(current_balance, 4),
         "solPriceUSD": round(sol_price_usd, 2),
-        "net": netMode,
-        "percent_change": round(percentage_change, 2) if percentage_change is not None else None,
-        "time_elapsed_seconds": int(time_elapsed) if time_elapsed is not None else None,
-        "time_elapsed_readable": time_elapsed_human
+        "net": netMode
     }
+
+    if percent_change is not None:
+        response_data["percent_change"] = percent_change
+
+    if time_elapsed_readable:
+        response_data["time_elapsed_readable"] = time_elapsed_readable
 
     return jsonify(standard_response(True, "Wallet info fetched", response_data))
