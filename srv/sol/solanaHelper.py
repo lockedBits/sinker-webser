@@ -3,14 +3,14 @@ from solders.pubkey import Pubkey
 from solders.system_program import transfer, TransferParams
 from solders.message import Message
 from solders.transaction import Transaction
-from base58 import b58encode, b58decode
 from solana.rpc.api import Client
+from base58 import b58encode, b58decode
 
 SOLANA_RPC_URL = "https://api.devnet.solana.com"
 client = Client(SOLANA_RPC_URL)
 
-class SolanaHelper:
 
+class SolanaHelper:
     @staticmethod
     def generate_wallet():
         keypair = Keypair()
@@ -24,41 +24,39 @@ class SolanaHelper:
     @staticmethod
     def get_balance(public_key_str: str):
         try:
-            public_key = Pubkey.from_string(public_key_str)
-            response = client.get_balance(public_key)
-            lamports = response["result"]["value"]
-            return lamports / 1_000_000_000
+            pubkey = Pubkey.from_string(public_key_str)
+            response = client.get_balance(pubkey)
+
+            # Properly access the lamports
+            lamports = response.value  # This works with solana-py client
+            sol = lamports / 1_000_000_000
+            return sol
         except Exception as e:
             print("Error getting balance:", e)
             return 0.0
 
     @staticmethod
-    def send_sol(from_private_key_b58: str, to_public_key_str: str, amount_sol: float):
+    def send_sol(from_private_key: str, to_public_key: str, amount_sol: float):
         try:
-            from_keypair = Keypair.from_bytes(b58decode(from_private_key_b58))
-            to_pubkey = Pubkey.from_string(to_public_key_str)
+            from_keypair = Keypair.from_bytes(b58decode(from_private_key))
+            to_pubkey = Pubkey.from_string(to_public_key)
             lamports = int(amount_sol * 1_000_000_000)
 
-            transfer_ix = transfer(
+            ix = transfer(
                 TransferParams(
                     from_pubkey=from_keypair.pubkey(),
                     to_pubkey=to_pubkey,
-                    lamports=lamports
+                    lamports=lamports,
                 )
             )
 
-            blockhash = client.get_latest_blockhash()["result"]["value"]["blockhash"]
-            message = Message([transfer_ix], payer=from_keypair.pubkey(), recent_blockhash=blockhash)
-            txn = Transaction(message, [from_keypair])
+            blockhash_resp = client.get_latest_blockhash()
+            blockhash = blockhash_resp.value.blockhash  # Correct way to access it
+
+            msg = Message(instructions=[ix], payer=from_keypair.pubkey(), recent_blockhash=blockhash)
+            txn = Transaction(msg, [from_keypair])
             send_resp = client.send_transaction(txn)
 
-            return {
-                "success": True,
-                "signature": send_resp["result"]
-            }
-
+            return {"success": True, "signature": send_resp.value}
         except Exception as e:
-            return {
-                "success": False,
-                "error": str(e)
-            }
+            return {"success": False, "error": str(e)}
