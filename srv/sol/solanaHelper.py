@@ -1,8 +1,6 @@
 from solders.keypair import Keypair
 from solders.pubkey import Pubkey
-from solders.transaction import Transaction
-from solders.message import Message
-from solders.system_program import transfer, TransferParams
+from solders.rpc.responses import GetBalanceResp
 from solana.rpc.api import Client
 from base58 import b58encode, b58decode
 
@@ -26,7 +24,9 @@ class SolanaHelper:
         try:
             public_key = Pubkey.from_string(public_key_str)
             response = client.get_balance(public_key)
-            if "result" in response and "value" in response["result"]:
+
+            # Access value correctly from the response dict
+            if response and "result" in response and "value" in response["result"]:
                 lamports = response["result"]["value"]
                 sol = lamports / 1_000_000_000
                 return sol
@@ -51,8 +51,8 @@ class SolanaHelper:
             )
 
             blockhash = client.get_latest_blockhash()["result"]["value"]["blockhash"]
-            msg = Message(instructions=[ix], payer=from_keypair.pubkey(), recent_blockhash=blockhash)
-            txn = Transaction(message=msg, signers=[from_keypair])
+            msg = Message([ix], payer=from_keypair.pubkey(), recent_blockhash=blockhash)
+            txn = Transaction(msg, [from_keypair])
             txn_sig = client.send_transaction(txn)["result"]
 
             return {"success": True, "signature": txn_sig}
