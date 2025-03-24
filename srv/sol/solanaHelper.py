@@ -27,7 +27,7 @@ class SolanaHelper:
     def get_balance(public_key_str: str):
         try:
             public_key = Pubkey.from_string(public_key_str)
-            response = rpc.get_balance(public_key)
+            response = client.get_balance(public_key)
             if isinstance(response, GetBalanceResp):
                 lamports = response.value
                 sol = lamports / 1_000_000_000
