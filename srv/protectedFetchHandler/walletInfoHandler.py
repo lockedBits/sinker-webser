@@ -1,11 +1,11 @@
 from flask import jsonify
 
-from srv.firebase.user_manager import get_user_by_uuid
+from srv.firebase.userManager import get_user_by_uuid
 from srv.sol.solanaHelper import get_balance
-from srv.utils.sol_utils import get_sol_price_usd
+from srv.utils.solUtils import get_sol_price_usd
 from srv.utils.helpers import standard_response
 
-def get_wallet_info_handler(uuid):
+def getWalletInfo(uuid):
     user_data = get_user_by_uuid(uuid)
     if not user_data:
         return jsonify(standard_response(False, "User not found")), 404
