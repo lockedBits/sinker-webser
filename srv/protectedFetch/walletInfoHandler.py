@@ -79,8 +79,13 @@ def getWalletInfo(uuid):
 
     if percent_change is not None:
         response_data["percent_change"] = percent_change
+    else:
+        response_data["percent_change"] = 0
+
 
     if time_elapsed_readable:
         response_data["time_elapsed_readable"] = time_elapsed_readable
+    else:
+        response_data["time_elapsed_readable"] = "0s"
 
     return jsonify(standard_response(True, "Wallet info fetched", response_data))
