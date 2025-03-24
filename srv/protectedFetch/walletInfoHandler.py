@@ -10,8 +10,8 @@ def getWalletInfo(uuid):
     if not user_data:
         return jsonify(standard_response(False, "User not found")), 404
 
-    public_key = user_data.get("solana", {}).get("public_key")
-    private_key = user_data.get("solana", {}).get("private_key")  # hide if needed
+    public_key = user_data.get("solana", {}).get("publicKey")
+    private_key = user_data.get("solana", {}).get("privateKey")  # hide if needed
     
     username = user_data.get("username", "Unknown")
 
