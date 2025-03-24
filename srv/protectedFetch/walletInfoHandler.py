@@ -67,10 +67,8 @@ def getWalletInfo(uuid):
             print("Error calculating time difference:", e)
 
     # Update Firestore fields (create them if missing)
-    update_user_field(uuid, {
-        "solana.last_balance": current_balance,
-        "solana.last_checked_at": datetime.now(timezone.utc).isoformat()
-    })
+    update_user_field(uuid, "solana.last_balance_value", current_balance)
+    update_user_field(uuid, "solana.last_balance_check", datetime.now(timezone.utc).isoformat())
 
     response_data = {
         "wallet_public_key": public_key,
