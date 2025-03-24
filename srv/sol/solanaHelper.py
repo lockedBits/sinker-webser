@@ -1,8 +1,10 @@
 from solders.keypair import Keypair
 from solders.pubkey import Pubkey
-from solders.rpc.responses import GetBalanceResp
-from solana.rpc.api import Client
+from solders.system_program import transfer, TransferParams
+from solders.message import Message
+from solders.transaction import Transaction
 from base58 import b58encode, b58decode
+from solana.rpc.api import Client
 
 SOLANA_RPC_URL = "https://api.devnet.solana.com"
 client = Client(SOLANA_RPC_URL)
@@ -25,12 +27,10 @@ class SolanaHelper:
             public_key = Pubkey.from_string(public_key_str)
             response = client.get_balance(public_key)
 
-            # Access value correctly from the response dict
-            if response and "result" in response and "value" in response["result"]:
-                lamports = response["result"]["value"]
-                sol = lamports / 1_000_000_000
-                return sol
-            return 0.0
+            # correct parsing of response from solana-py client
+            lamports = response.get("result", {}).get("value", 0)
+            sol = lamports / 1_000_000_000
+            return sol
         except Exception as e:
             print("Error getting balance:", e)
             return 0.0
@@ -50,8 +50,8 @@ class SolanaHelper:
                 )
             )
 
-            blockhash = client.get_latest_blockhash()["result"]["value"]["blockhash"]
-            msg = Message([ix], payer=from_keypair.pubkey(), recent_blockhash=blockhash)
+            latest_blockhash = client.get_latest_blockhash()["result"]["value"]["blockhash"]
+            msg = Message([ix], payer=from_keypair.pubkey(), recent_blockhash=latest_blockhash)
             txn = Transaction(msg, [from_keypair])
             txn_sig = client.send_transaction(txn)["result"]
 
