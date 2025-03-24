@@ -1,8 +1,8 @@
 from flask import jsonify
 
-from srv.firebase.userManager import get_user_by_uuid
-from srv.sol.solanaHelper import get_balance
-from srv.utils.solUtils import get_sol_price_usd
+from srv.firebase.user_manager import get_user_by_uuid
+from srv.sol.solanaHelper import SolanaHelper
+from srv.utils.sol_utils import get_sol_price_usd
 from srv.utils.helpers import standard_response
 
 def getWalletInfo(uuid):
@@ -14,7 +14,7 @@ def getWalletInfo(uuid):
     private_key = user_data.get("wallet_private_key")  # hide if needed
     username = user_data.get("username", "Unknown")
 
-    sol_balance = get_sol_balance(public_key)
+    sol_balance = SolanaHelper.get_balance(public_key)
     sol_price_usd = get_sol_price_usd()
 
     return jsonify(standard_response(True, "Wallet info fetched", {
