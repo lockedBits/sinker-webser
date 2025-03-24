@@ -1,13 +1,12 @@
 from solders.keypair import Keypair
 from solders.pubkey import Pubkey
-from solders.system_program import transfer, TransferParams
-from solders.message import Message
-from solders.transaction import Transaction
+from solders.rpc.requests import GetBalance
+from solders.rpc.responses import GetBalanceResp
+from solders.rpc import RpcClient
 from base58 import b58encode, b58decode
-from solana.rpc.api import Client
 
 SOLANA_RPC_URL = "https://api.devnet.solana.com"
-client = Client(SOLANA_RPC_URL)
+rpc = RpcClient(SOLANA_RPC_URL)
 
 
 class SolanaHelper:
@@ -24,11 +23,11 @@ class SolanaHelper:
     @staticmethod
     def get_balance(public_key_str: str):
         try:
-            public_key = Pubkey.from_string(public_key_str)
-            response = client.get_balance(public_key)
+            pubkey = Pubkey.from_string(public_key_str)
+            resp = rpc.get_balance(pubkey)
 
-            # correct parsing of response from solana-py client
-            lamports = response.get("result", {}).get("value", 0)
+            # Correct way to access value from GetBalanceResp
+            lamports = resp.value  # this is an integer
             sol = lamports / 1_000_000_000
             return sol
         except Exception as e:
