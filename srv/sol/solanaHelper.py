@@ -1,15 +1,16 @@
 from solders.keypair import Keypair
 from solders.pubkey import Pubkey
-from solders.rpc.requests import GetBalance
-from solders.rpc.responses import GetBalanceResp
-from solders.rpc import RpcClient
+from solders.system_program import transfer, TransferParams
+from solders.message import Message
+from solders.transaction import Transaction
 from base58 import b58encode, b58decode
+from solana.rpc.api import Client
 
 SOLANA_RPC_URL = "https://api.devnet.solana.com"
-rpc = RpcClient(SOLANA_RPC_URL)
-
+client = Client(SOLANA_RPC_URL)
 
 class SolanaHelper:
+
     @staticmethod
     def generate_wallet():
         keypair = Keypair()
@@ -23,25 +24,22 @@ class SolanaHelper:
     @staticmethod
     def get_balance(public_key_str: str):
         try:
-            pubkey = Pubkey.from_string(public_key_str)
-            resp = rpc.get_balance(pubkey)
-
-            # Correct way to access value from GetBalanceResp
-            lamports = resp.value  # this is an integer
-            sol = lamports / 1_000_000_000
-            return sol
+            public_key = Pubkey.from_string(public_key_str)
+            response = client.get_balance(public_key)
+            lamports = response["result"]["value"]
+            return lamports / 1_000_000_000
         except Exception as e:
             print("Error getting balance:", e)
             return 0.0
 
     @staticmethod
-    def send_sol(from_private_key: str, to_public_key: str, amount_sol: float):
+    def send_sol(from_private_key_b58: str, to_public_key_str: str, amount_sol: float):
         try:
-            from_keypair = Keypair.from_bytes(b58decode(from_private_key))
-            to_pubkey = Pubkey.from_string(to_public_key)
+            from_keypair = Keypair.from_bytes(b58decode(from_private_key_b58))
+            to_pubkey = Pubkey.from_string(to_public_key_str)
             lamports = int(amount_sol * 1_000_000_000)
 
-            ix = transfer(
+            transfer_ix = transfer(
                 TransferParams(
                     from_pubkey=from_keypair.pubkey(),
                     to_pubkey=to_pubkey,
@@ -49,11 +47,18 @@ class SolanaHelper:
                 )
             )
 
-            latest_blockhash = client.get_latest_blockhash()["result"]["value"]["blockhash"]
-            msg = Message([ix], payer=from_keypair.pubkey(), recent_blockhash=latest_blockhash)
-            txn = Transaction(msg, [from_keypair])
-            txn_sig = client.send_transaction(txn)["result"]
+            blockhash = client.get_latest_blockhash()["result"]["value"]["blockhash"]
+            message = Message([transfer_ix], payer=from_keypair.pubkey(), recent_blockhash=blockhash)
+            txn = Transaction(message, [from_keypair])
+            send_resp = client.send_transaction(txn)
 
-            return {"success": True, "signature": txn_sig}
+            return {
+                "success": True,
+                "signature": send_resp["result"]
+            }
+
         except Exception as e:
-            return {"success": False, "error": str(e)}
+            return {
+                "success": False,
+                "error": str(e)
+            }
