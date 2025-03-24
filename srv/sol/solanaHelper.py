@@ -1,8 +1,6 @@
 from solders.keypair import Keypair
 from solders.pubkey import Pubkey
-from solders.signature import Signature
 from solders.transaction import Transaction
-from solders.instruction import Instruction
 from solders.message import Message
 from solders.system_program import transfer, TransferParams
 from solana.rpc.api import Client
@@ -28,15 +26,15 @@ class SolanaHelper:
         try:
             public_key = Pubkey.from_string(public_key_str)
             response = client.get_balance(public_key)
-            if isinstance(response, GetBalanceResp):
-                lamports = response.value
+            if "result" in response and "value" in response["result"]:
+                lamports = response["result"]["value"]
                 sol = lamports / 1_000_000_000
                 return sol
             return 0.0
         except Exception as e:
             print("Error getting balance:", e)
             return 0.0
-    
+
     @staticmethod
     def send_sol(from_private_key: str, to_public_key: str, amount_sol: float):
         try:
@@ -53,8 +51,8 @@ class SolanaHelper:
             )
 
             blockhash = client.get_latest_blockhash()["result"]["value"]["blockhash"]
-            msg = Message([ix], payer=from_keypair.pubkey(), recent_blockhash=blockhash)
-            txn = Transaction(msg, [from_keypair])
+            msg = Message(instructions=[ix], payer=from_keypair.pubkey(), recent_blockhash=blockhash)
+            txn = Transaction(message=msg, signers=[from_keypair])
             txn_sig = client.send_transaction(txn)["result"]
 
             return {"success": True, "signature": txn_sig}
