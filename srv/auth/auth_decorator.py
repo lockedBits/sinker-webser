@@ -3,7 +3,7 @@
 from functools import wraps
 from flask import request, jsonify
 
-from srv.session.session_manager import validate_session_token
+from srv.session.sessionManager import validate_session_token
 from srv.utils.helpers import standard_response
 
 def require_auth(func):
