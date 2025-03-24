@@ -2,7 +2,7 @@ from flask import jsonify
 
 from srv.firebase.userManager import get_user_by_uuid
 from srv.sol.solanaHelper import SolanaHelper
-from srv.utils.sol_utils import get_sol_price_usd
+from srv.utils.solUtils import get_sol_price_usd
 from srv.utils.helpers import standard_response
 
 def getWalletInfo(uuid):
