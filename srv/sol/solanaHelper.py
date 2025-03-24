@@ -6,11 +6,25 @@ from solders.transaction import Transaction
 from solana.rpc.api import Client
 from base58 import b58encode, b58decode
 
-SOLANA_RPC_URL = "https://api.devnet.solana.com"
+SOLANA_RPC_URL_DEVNET = "https://api.devnet.solana.com"
+SOLANA_RPC_URL_MAINNET = "https://api.mainnet-beta.solana.com"
+
+SOLANA_RPC_URL = SOLANA_RPC_URL_DEVNET
+SOLANA_RPC_MODE = "Devnet"
+
+
 client = Client(SOLANA_RPC_URL)
 
 
 class SolanaHelper:
+
+
+    @staticmethod
+    def getMode():
+        return {
+            SOLANA_RPC_MODE
+        }
+    
     @staticmethod
     def generate_wallet():
         keypair = Keypair()
