@@ -1,5 +1,5 @@
 from flask import Blueprint, request
-from srv.auth.auth_decorators import require_auth
+from srv.auth.auth_decorator import require_auth
 
 from srv.protectedFetchHandler import get_wallet_info_handler  # adjust path if different
 
