@@ -11,20 +11,21 @@ SOLANA_RPC_URL_MAINNET = "https://api.mainnet-beta.solana.com"
 
 SOLANA_RPC_URL = SOLANA_RPC_URL_DEVNET
 solana_rpc_mode = "Devnet"
-
-
 client = Client(SOLANA_RPC_URL)
 
 
 class SolanaHelper:
-
-
     @staticmethod
     def getMode():
-        return {
-            solana_rpc_mode
-        }
-    
+        return solana_rpc_mode
+
+    @staticmethod
+    def switch_mode(use_mainnet=False):
+        global SOLANA_RPC_URL, client, solana_rpc_mode
+        SOLANA_RPC_URL = SOLANA_RPC_URL_MAINNET if use_mainnet else SOLANA_RPC_URL_DEVNET
+        solana_rpc_mode = "Mainnet" if use_mainnet else "Devnet"
+        client = Client(SOLANA_RPC_URL)
+
     @staticmethod
     def generate_wallet():
         keypair = Keypair()
@@ -40,9 +41,7 @@ class SolanaHelper:
         try:
             pubkey = Pubkey.from_string(public_key_str)
             response = client.get_balance(pubkey)
-
-            # Properly access the lamports
-            lamports = response.value  # This works with solana-py client
+            lamports = response.value
             sol = lamports / 1_000_000_000
             return sol
         except Exception as e:
@@ -65,7 +64,7 @@ class SolanaHelper:
             )
 
             blockhash_resp = client.get_latest_blockhash()
-            blockhash = blockhash_resp.value.blockhash  # Correct way to access it
+            blockhash = blockhash_resp.value.blockhash
 
             msg = Message(instructions=[ix], payer=from_keypair.pubkey(), recent_blockhash=blockhash)
             txn = Transaction(msg, [from_keypair])

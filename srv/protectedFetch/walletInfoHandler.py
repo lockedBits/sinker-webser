@@ -18,7 +18,7 @@ def getWalletInfo(uuid):
     sol_balance = SolanaHelper.get_balance(public_key)
     sol_price_usd = get_sol_price_usd()
 
-    net = SolanaHelper.getMode()
+    netMode = SolanaHelper.getMode()
 
     return jsonify(standard_response(True, "Wallet info fetched", {
         "wallet_public_key": public_key,
@@ -26,5 +26,5 @@ def getWalletInfo(uuid):
         "username": username,
         "balance": round(sol_balance, 4),
         "solPriceUSD": round(sol_price_usd, 2),
-        "net" : net
+        "net" : netMode
     }))
