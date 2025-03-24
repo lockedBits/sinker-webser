@@ -10,7 +10,7 @@ SOLANA_RPC_URL_DEVNET = "https://api.devnet.solana.com"
 SOLANA_RPC_URL_MAINNET = "https://api.mainnet-beta.solana.com"
 
 SOLANA_RPC_URL = SOLANA_RPC_URL_DEVNET
-SOLANA_RPC_MODE = "Devnet"
+solana_rpc_mode = "Devnet"
 
 
 client = Client(SOLANA_RPC_URL)
@@ -22,7 +22,7 @@ class SolanaHelper:
     @staticmethod
     def getMode():
         return {
-            SOLANA_RPC_MODE
+            solana_rpc_mode
         }
     
     @staticmethod
