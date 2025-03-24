@@ -26,14 +26,17 @@ class SolanaHelper:
     @staticmethod
     def get_balance(public_key: str):
         try:
-            response = client.get_balance(Pubkey.from_string(public_key))
-            if "result" in response and response["result"]:
-                lamports = response["result"]["value"]
-                return {"success": True, "balance_sol": lamports / 1_000_000_000}
-            return {"success": False, "error": "No result in response"}
+            public_key = Pubkey.from_string(public_key_str)
+            response = rpc.get_balance(public_key)
+            if isinstance(response, GetBalanceResp):
+                lamports = response.value
+                sol = lamports / 1_000_000_000
+                return sol
+            return 0.0
         except Exception as e:
-            return {"success": False, "error": str(e)}
-
+            print("Error getting balance:", e)
+            return 0.0
+    
     @staticmethod
     def send_sol(from_private_key: str, to_public_key: str, amount_sol: float):
         try:
