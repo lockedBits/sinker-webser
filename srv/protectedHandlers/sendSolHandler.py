@@ -32,7 +32,7 @@ def handle_send_sol(uuid, data):
         send_result = SolanaHelper.send_sol(from_private_key, to_public_key, amount_sol)
         
         if not send_result["success"]:
-            return jsonify(standard_response(False, "Transaction failed", send_result["error"]))
+            return jsonify(standard_response(False, "Transaction failed at the point idk what i did"))
 
         try:
              # Prepare transaction log
