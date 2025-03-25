@@ -98,8 +98,9 @@ class SolanaHelper:
             txn = VersionedTransaction(msg, [from_keypair])
             send_resp = client.send_transaction(txn)
 
-            if send_resp.error:
-                return {"success": False, "error": f"Transaction failed: {send_resp.error}"}
+            # Check if send_resp has an error
+            if not hasattr(send_resp, "value") or not send_resp.value:
+                return {"success": False, "error": "Transaction failed or response is invalid"}
 
             return {"success": True, "signature": send_resp.value}
 
