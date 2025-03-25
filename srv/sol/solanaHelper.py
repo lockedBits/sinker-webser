@@ -99,9 +99,9 @@ class SolanaHelper:
             send_resp = client.send_transaction(txn)
 
             if send_resp.value:
-                return False
+                return {"success": True, "signature": send_resp.value}
             else:
-                return True
+                return {"success": False, "error": "Transaction failed"}
 
         except Exception as e:
             raise Exception(e)
