@@ -70,10 +70,10 @@ class SolanaHelper:
             to_pubkey = Pubkey.from_string(to_public_key)
             lamports = int(amount_sol * 1_000_000_000)  # Convert SOL to lamports
 
-            # ✅ Fetch latest blockhash with error handling
+            # ✅ Fetch latest blockhash
             blockhash_resp = client.get_latest_blockhash()
-            if not blockhash_resp or not blockhash_resp.value:
-                return {"success": False, "error": "Failed to fetch blockhash"}
+            if blockhash_resp.error:  # Explicit error check
+                return {"success": False, "error": f"Failed to fetch blockhash: {blockhash_resp.error}"}
 
             blockhash = blockhash_resp.value.blockhash
 
@@ -98,10 +98,10 @@ class SolanaHelper:
             txn = VersionedTransaction(msg, [from_keypair])
             send_resp = client.send_transaction(txn)
 
-            if send_resp.value:
-                return {"success": True, "signature": send_resp.value}
-            else:
-                return {"success": False, "error": "Transaction failed"}
+            if send_resp.error:
+                return {"success": False, "error": f"Transaction failed: {send_resp.error}"}
+
+            return {"success": True, "signature": send_resp.value}
 
         except Exception as e:
-            raise Exception(e)
+            return {"success": False, "error": f"Unexpected error: {str(e)}"}  # Safer exception handling

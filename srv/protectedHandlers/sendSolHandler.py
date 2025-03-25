@@ -34,10 +34,18 @@ def handle_send_sol(uuid, data):
         if not send_result["success"]:
             return jsonify(standard_response(False, "Transaction failed", send_result["error"])), 400
 
+        # Prepare transaction log
+        transaction_log = {
+            "to": to_public_key,
+            "amount": amount_sol,
+            "timestamp": datetime.now(timezone.utc).isoformat(),
+            "signature": send_result.get("signature", "N/A")
+        }
+
         # Update Firestore transaction history
-        update_result = update_user_nested_field(uuid, {"transactions": transaction_log})
-        
+        update_user_nested_field(uuid, {"solana.transactions": transaction_log})
+
         return jsonify(standard_response(True, "Transaction successful", transaction_log))
     
     except Exception as e:
-        return jsonify(standard_response(False, ("Encountered an error" + e))), 500
+        return jsonify(standard_response(False, f"Encountered an error: {str(e)}")), 500
