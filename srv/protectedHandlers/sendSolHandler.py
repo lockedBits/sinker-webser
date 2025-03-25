@@ -48,4 +48,4 @@ def handle_send_sol(uuid, data):
         return jsonify(standard_response(True, "Transaction successful", transaction_log))
     
     except Exception as e:
-        return jsonify(standard_response(False, f"Encountered an error: {str(e)}")), 500
+        return jsonify(standard_response(False, f"Encountered an error: {str(e)}"))
