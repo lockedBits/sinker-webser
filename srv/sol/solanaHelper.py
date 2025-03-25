@@ -70,10 +70,12 @@ class SolanaHelper:
             to_pubkey = Pubkey.from_string(to_public_key)
             lamports = int(amount_sol * 1_000_000_000)  # Convert SOL to lamports
 
-            # ✅ Fetch latest blockhash
+            # ✅ Fetch latest blockhash with error handling
             blockhash_resp = client.get_latest_blockhash()
-            if blockhash_resp.error:  # Explicit error check
-                return {"success": False, "error": f"Failed to fetch blockhash: {blockhash_resp.error}"}
+
+            # Check if blockhash_resp is valid
+            if not blockhash_resp or not getattr(blockhash_resp, "value", None):
+                return {"success": False, "error": "Failed to fetch blockhash"}
 
             blockhash = blockhash_resp.value.blockhash
 
