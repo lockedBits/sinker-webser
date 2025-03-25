@@ -3,7 +3,7 @@ from solders.pubkey import Pubkey
 from solders.system_program import transfer, TransferParams
 from solders.message import MessageV0
 from solders.transaction import VersionedTransaction
-from solders.rpc.api import Client
+from solana.rpc.api import Client
 from base58 import b58encode, b58decode
 
 # Solana RPC Endpoints
