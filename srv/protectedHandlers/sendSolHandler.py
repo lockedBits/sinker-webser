@@ -44,9 +44,7 @@ def handle_send_sol(uuid, data):
 
         # Update Firestore transaction history
         update_result = update_user_nested_field(uuid, {"transactions": transaction_log})
-        if not update_result["success"]:
-            return jsonify(standard_response(False, "Failed to update transaction log")), 500
-
+        
         return jsonify(standard_response(True, "Transaction successful", transaction_log))
     
     except Exception as e:
