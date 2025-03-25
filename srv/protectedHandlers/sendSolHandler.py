@@ -11,10 +11,10 @@ def handle_send_sol(uuid, data):
 
     # Retrieve sender's private key from Firestore using UUID
     user_data = get_user_by_uuid(uuid)
-    if not user_data or "wallet_private_key" not in user_data:
+    if not user_data or "solana" not in user_data or "privateKey" not in user_data["solana"]:
         return {"success": False, "message": "Sender wallet not found"}, 400
 
-    private_key = user_data.get("solana", {}).get("last_balance_value")
+    private_key = user_data["solana"]["privateKey"]  # Correct path
 
     # Send SOL transaction
     result = SolanaHelper.send_sol(private_key, recipient, float(amount))
