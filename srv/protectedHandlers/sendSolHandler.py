@@ -40,7 +40,7 @@ def handle_send_sol(uuid, data):
                 "to": to_public_key,
                 "amount": amount_sol,
                 "timestamp": datetime.now(timezone.utc).isoformat(),
-                "signature": send_result.get("signature", "N/A")
+                "signature": str(send_result.get("signature", "N/A"))
             }
 
             # Update Firestore transaction history
