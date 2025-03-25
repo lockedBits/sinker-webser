@@ -55,16 +55,11 @@ class SolanaHelper:
     @staticmethod
     def send_sol(from_private_key: str, to_public_key: str, amount_sol: float):
         try:
-            print("From Private Key:", from_private_key)
-            print("To Public Key:", to_public_key)
-            print("Amount:", amount_sol)
-
             from_keypair = Keypair.from_bytes(b58decode(from_private_key))
             to_pubkey = Pubkey.from_string(to_public_key)
-            lamports = int(amount_sol * 1_000_000_000)
+            lamports = int(amount_sol * 1_000_000_000)  # Convert SOL to lamports
 
-            print("Lamports to send:", lamports)
-
+            # Create transfer instruction
             ix = transfer(
                 TransferParams(
                     from_pubkey=from_keypair.pubkey(),
@@ -73,30 +68,27 @@ class SolanaHelper:
                 )
             )
 
+            # Fetch latest blockhash
             blockhash_resp = client.get_latest_blockhash()
             blockhash = blockhash_resp.value.blockhash
 
-            if not blockhash:
-                return {"success": False, "error": "Failed to fetch latest blockhash"}
-
-            # ✅ Use MessageV0 instead of Message
+            # Create transaction message
             msg = MessageV0.try_compile(
                 payer=from_keypair.pubkey(),
                 instructions=[ix],
                 address_lookup_table_accounts=[],
-                recent_blockhash=blockhash
+                recent_blockhash=blockhash,
             )
 
+            # Sign transaction
             txn = VersionedTransaction(msg, [from_keypair])
 
-            print("Transaction Prepared:", txn)
-
+            # Send transaction
             send_resp = client.send_transaction(txn)
 
-            if send_resp.value:
-                return {"success": True, "signature": send_resp.value}
-            else:
-                return {"success": False, "error": str(send_resp)}
-
+            return {
+                "success": True,
+                "signature": send_resp.value
+            }
         except Exception as e:
             return {"success": False, "error": str(e)}

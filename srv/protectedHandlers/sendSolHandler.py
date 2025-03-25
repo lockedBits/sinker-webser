@@ -1,36 +1,46 @@
-from datetime import datetime
+from flask import jsonify
+from datetime import datetime, timezone
+
+from srv.firebase.user_manager import update_user_nested_field, get_user_by_uuid
 from srv.sol.solanaHelper import SolanaHelper
-from srv.firebase.userManager import get_user_by_uuid, update_user_nested_field
+from srv.utils.helpers import standard_response
 
 def handle_send_sol(uuid, data):
-    recipient = data.get("recipient")
-    amount = data.get("amount")
+    try:
+        # Extract data
+        from_private_key = data.get("from_private_key")
+        to_public_key = data.get("to_public_key")
+        amount_sol = data.get("amount_sol")
 
-    if not recipient or not amount:
-        return {"success": False, "message": "Missing required fields"}, 400
+        # Validate input
+        if not from_private_key or not to_public_key or amount_sol is None:
+            return jsonify(standard_response(False, "Missing required parameters")), 400
 
-    user_data = get_user_by_uuid(uuid)
-    solana_data = user_data.get("solana", {})  # Default to an empty dict if missing
-    private_key = solana_data.get("privateKey")
+        # Get user info
+        user_data = get_user_by_uuid(uuid)
+        if not user_data:
+            return jsonify(standard_response(False, "User not found")), 404
 
-    if not private_key:
-        return {"success": False, "message": "Sender wallet private key not found"}, 400
+        # Send SOL using SolanaHelper
+        send_result = SolanaHelper.send_sol(from_private_key, to_public_key, amount_sol)
+        if not send_result["success"]:
+            return jsonify(standard_response(False, "Transaction failed", send_result["error"])), 400
 
-    # Send SOL transaction
-    result = SolanaHelper.send_sol(private_key, recipient, float(amount))
-
-    if result.get("success"):
-        # Log transaction in Firestore
+        # Prepare transaction log
         transaction_log = {
-            "timestamp": datetime.utcnow().isoformat(),
-            "recipient": recipient,
-            "amount": amount,
-            "signature": result["signature"],
+            "timestamp": datetime.now(timezone.utc).isoformat(),
+            "from": from_private_key[-6:],  # Store only last 6 chars for security
+            "to": to_public_key,
+            "amount_sol": amount_sol,
+            "signature": send_result["data"]["signature"]
         }
 
-        # Append transaction to Firestore using arrayUnion
-        update_user_nested_field(uuid, {
-            "transactions": db.ArrayUnion([transaction_log])
-        })
+        # Update Firestore transaction history
+        update_result = update_user_nested_field(uuid, {"transactions": transaction_log})
+        if not update_result["success"]:
+            return jsonify(standard_response(False, "Failed to update transaction log")), 500
 
-    return result
+        return jsonify(standard_response(True, "Transaction successful", transaction_log))
+    
+    except Exception as e:
+        return jsonify(standard_response(False, "Unexpected error", str(e))), 500
