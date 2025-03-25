@@ -34,15 +34,6 @@ def handle_send_sol(uuid, data):
         if not send_result["success"]:
             return jsonify(standard_response(False, "Transaction failed", send_result["error"])), 400
 
-        # Prepare transaction log
-        transaction_log = {
-            "timestamp": datetime.now(timezone.utc).isoformat(),
-            "from": from_private_key[-6:],  # Store only last 6 chars for security
-            "to": to_public_key,
-            "amount_sol": amount_sol,
-            "signature": str(send_result.get("signature"))  # Convert Signature to string
-        }
-
         # Update Firestore transaction history
         update_result = update_user_nested_field(uuid, {"transactions": transaction_log})
         
