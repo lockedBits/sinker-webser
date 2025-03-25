@@ -39,7 +39,7 @@ def handle_send_sol(uuid, data):
             "from": from_private_key[-6:],  # Store only last 6 chars for security
             "to": to_public_key,
             "amount_sol": amount_sol,
-            "signature": send_result.get("signature")
+            "signature": str(send_result.get("signature"))  # Convert Signature to string
         }
 
         # Update Firestore transaction history
