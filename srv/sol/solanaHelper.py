@@ -6,6 +6,10 @@ from solders.transaction import Transaction
 from solana.rpc.api import Client
 from base58 import b58encode, b58decode
 
+from solders.message import MessageV0
+from solders.transaction import VersionedTransaction
+
+
 SOLANA_RPC_URL_DEVNET = "https://api.devnet.solana.com"
 SOLANA_RPC_URL_MAINNET = "https://api.mainnet-beta.solana.com"
 
