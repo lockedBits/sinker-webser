@@ -62,11 +62,11 @@ def getWalletInfo(uuid):
         except Exception as e:
             print("Error calculating time elapsed:", e)
 
-    # Update Firestore
     update_user_nested_field(uuid, {
-        "solana.last_balance_value": current_balance,
+        "solana.last_balance_value": float(current_balance),  # Explicitly force float
         "solana.last_balance_check": datetime.now(timezone.utc).isoformat()
     })
+
 
     response_data = {
         "wallet_public_key": public_key,
