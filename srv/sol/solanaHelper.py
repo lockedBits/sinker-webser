@@ -75,8 +75,15 @@ class SolanaHelper:
             if not blockhash:
                 return {"success": False, "error": "Failed to fetch latest blockhash"}
 
-            msg = Message(instructions=[ix], payer=from_keypair.pubkey(), recent_blockhash=blockhash)
-            txn = Transaction(msg, [from_keypair])
+            # ✅ Use MessageV0 instead of Message
+            msg = MessageV0.try_compile(
+                payer=from_keypair.pubkey(),
+                instructions=[ix],
+                address_lookup_table_accounts=[],
+                recent_blockhash=blockhash
+            )
+
+            txn = VersionedTransaction(msg, [from_keypair])
 
             print("Transaction Prepared:", txn)
 
@@ -89,4 +96,3 @@ class SolanaHelper:
 
         except Exception as e:
             return {"success": False, "error": str(e)}
-
