@@ -53,9 +53,6 @@ class SolanaHelper:
             sol_balance = response.value / 1_000_000_000
             return sol_balance
 
-        except Exception as e:
-            return {"success": False, "error": f"Balance check failed: {str(e)}"}
-
     @staticmethod
     def send_sol(from_private_key: str, to_public_key: str, amount_sol: float):
         """Send SOL from one wallet to another."""
