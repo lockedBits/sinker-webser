@@ -51,7 +51,7 @@ class SolanaHelper:
                 return {"success": False, "error": "Failed to fetch balance"}
 
             sol_balance = response.value / 1_000_000_000
-            return {"success": True, "balance": sol_balance}
+            return sol_balance
 
         except Exception as e:
             return {"success": False, "error": f"Balance check failed: {str(e)}"}
