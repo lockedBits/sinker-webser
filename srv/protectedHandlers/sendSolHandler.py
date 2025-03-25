@@ -14,7 +14,7 @@ def handle_send_sol(uuid, data):
     if not user_data or "wallet_private_key" not in user_data:
         return {"success": False, "message": "Sender wallet not found"}, 400
 
-    private_key = user_data["wallet_private_key"]
+    private_key = user_data.get("solana", {}).get("last_balance_value")
 
     # Send SOL transaction
     result = SolanaHelper.send_sol(private_key, recipient, float(amount))
