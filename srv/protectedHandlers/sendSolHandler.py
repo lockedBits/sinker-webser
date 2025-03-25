@@ -1,6 +1,6 @@
 from datetime import datetime
 from srv.sol.solanaHelper import SolanaHelper
-from srv.firebase.user_manager import get_user_by_uuid, update_user_nested_field
+from srv.firebase.userManager import get_user_by_uuid, update_user_nested_field
 
 def handle_send_sol(uuid, data):
     recipient = data.get("recipient")
