@@ -1,7 +1,7 @@
 from flask import jsonify
 from datetime import datetime, timezone
 
-from srv.firebase.user_manager import update_user_nested_field, get_user_by_uuid
+from srv.firebase.userManager import update_user_nested_field, get_user_by_uuid
 from srv.sol.solanaHelper import SolanaHelper
 from srv.utils.helpers import standard_response
 
