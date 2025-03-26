@@ -7,8 +7,11 @@ from solana.rpc.api import Client
 from base58 import b58encode, b58decode
 
 # Solana RPC Endpoints
-SOLANA_RPC_URL_DEVNET = "https://api.devnet.solana.com"
-SOLANA_RPC_URL_MAINNET = "https://api.mainnet-beta.solana.com"
+SOLANA_RPC_URL_DEVNET_DPC = "https://api.devnet.solana.com"
+SOLANA_RPC_URL_MAINNET_DPC = "https://api.mainnet-beta.solana.com"
+
+SOLANA_RPC_URL_DEVNET = "https://devnet.helius-rpc.com/?api-key=bed07d7d-6537-4ad9-8941-63be722cfdc7"
+SOLANA_RPC_URL_MAINNET = "https://mainnet.helius-rpc.com/?api-key=bed07d7d-6537-4ad9-8941-63be722cfdc7"
 
 # Use Devnet by default
 SOLANA_RPC_URL = SOLANA_RPC_URL_DEVNET
