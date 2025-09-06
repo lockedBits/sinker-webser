@@ -7,3 +7,4 @@ PyJWT
 solana
 base58
 solders
+python-dotenv

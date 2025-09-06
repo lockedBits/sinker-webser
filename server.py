@@ -11,4 +11,4 @@ app.register_blueprint(auth_bp, url_prefix='/api/auth')
 app.register_blueprint(protected_bp, url_prefix='/api/protected')
 
 if __name__ == "__main__":
-    app.run(debug=True)
+    app.run(debug=False)
